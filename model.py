@@ -10,7 +10,12 @@ import time
 import numpy as np
 import sys
 
-device = torch.device('cuda:1')
+# Load the config file
+config_file = 'config.json'
+with open(config_file, 'r') as file:
+    config = json.load(file)
+
+device = torch.device(config['device'])
 dev = device
 
 class stagerNetAAE(nn.Module):
@@ -155,12 +160,14 @@ class stagerNetAAE(nn.Module):
         self.pred = self.fc_clf(zi).to(dev)
 
         self.pred_class = F.softmax(self.fc_clf_discr1(zi)).to(dev)
-        if self.level == 0 or self.level >= 2:
-            self.pred_class2 = F.softmax(self.fc_clf_discr2(zi)).to(dev)
-        if self.level == 0 or self.level == 3:
-            self.pred_class3 = F.softmax(self.fc_clf_discr3(zi)).to(dev)
+        # if self.level == 0 or self.level >= 2:
+        self.pred_class2 = F.softmax(self.fc_clf_discr2(zi)).to(dev).argmax(dim=1)
+        # if self.level == 0 or self.level == 3:
+        self.pred_class3 = F.softmax(self.fc_clf_discr3(zi)).to(dev).argmax(dim=1)
+        
+        preds = torch.cat([self.pred] * config['nb_of_labels'], dim=1) # force the same shape as the labels
 
-        return self.pred
+        return  preds
   
 
     def ae_loss_func(self, output, target):
@@ -172,49 +179,39 @@ class stagerNetAAE(nn.Module):
         return recons_loss
 
     def ordinal_loss(self, preds, target, mydev=dev):
-        # repeat the vector to the same shape
-        p = preds.view(-1)
-        repeated_target = target.repeat(target.shape[0], 1)
-        repeated_preds = p.repeat(p.shape[0], 1)
+        # print(f'in ordinal: {preds, target}')
+        # Comute the term by term differences
+        order_diff = target.unsqueeze(1) - target.unsqueeze(0)
+        pred_order_diff = preds.unsqueeze(1) - preds.unsqueeze(0)
 
-        # subtract the vector element-wise with itself
-        pairwise_target = repeated_target - repeated_target.T
-        pairwise_preds = repeated_preds - repeated_preds.T
+        # Create a mask to exclude self-differences (diagonal elements)
+        mask = torch.eye(preds.size(0)).bool()
+        order_diff = order_diff[~mask].float()
+        pred_order_diff = pred_order_diff[~mask].float()
 
-        # get the sign of each element in both tensors
-        target_sign = torch.sign(pairwise_target)
-        preds_sign = torch.sign(pairwise_preds)
+        # Normalize the order_diff to avoid biased comparison
+        if any(order_diff!=0) and any(pred_order_diff!=0):
+            order_diff = (order_diff - order_diff.min()) / (order_diff.max() - order_diff.min())
+            pred_order_diff = (pred_order_diff - pred_order_diff.min()) / (pred_order_diff.max() - pred_order_diff.min())
 
-        # compare the signs
-        sign_comparison = (target_sign != preds_sign)
-        sign_comparison = torch.where(target_sign != preds_sign, 
-                                      torch.tensor(1.0, requires_grad=True).to(mydev), 
-                                      torch.tensor(0.0, requires_grad=True).to(mydev))
+        loss = torch.abs(order_diff - pred_order_diff).mean()
 
-        # get the lower triangle without the trace (which is always 0)
-        tri_idx = torch.triu(torch.ones_like(sign_comparison))
-        tri_idx = (tri_idx == 0)
-        sign_comparison = sign_comparison[tri_idx]
-        # use the target differences as weights
-        weights = pairwise_target[tri_idx].abs()
-
-        loss = (sign_comparison*weights).sum()/len(sign_comparison)
+        if loss.isnan():
+            print(f'nan here: {preds, target,order_diff,pred_order_diff}')
 
         return loss
-
     
     def classif_loss_func(self, output, target):
-        print(f'The target type is {type(target)} with length: {len(target)}')
-        print('with shapes:')
-        for i in range(len(target)):
-            print(f'target[{i}]: {target[i].shape}')
-            
-        self.targ1 = target[1].to(dev).type(torch.float32)
-        self.targ2 = target[2].to(dev).type(torch.float32)
-        self.targ3 = target[3].to(dev).type(torch.float32)
-        self.lab3 = target[4].to(dev).type(torch.float32)
-        self.lab4 = target[5].to(dev).type(torch.float32)
-        target = target[0].to(dev).type(torch.float32)
+        # print(f'The target type is {type(target)} with length: {len(target)}')
+        # print('with shapes:')
+        # for i in range(len(target[0])):
+        #     print(f'target[{i}]: {target[:,i].shape}')
+        self.targ1 = target[:,1].to(dev).type(torch.long)
+        self.targ2 = target[:,2].to(dev).type(torch.long)
+        self.targ3 = target[:,3].to(dev).type(torch.long)
+        self.lab3 = target[:,4].to(dev).type(torch.float32)
+        self.lab4 = target[:,5].to(dev).type(torch.float32)
+        target = target[:,0].to(dev).type(torch.float32)
 
         delta = .5
         huber = nn.HuberLoss(delta=delta)
@@ -222,16 +219,16 @@ class stagerNetAAE(nn.Module):
 
         self.recons_loss = (huber(self.decoded, self.ae_input) +
             2*huber(self.decoded.std(dim=-1), self.ae_input.std(dim=-1)) # avoid the decoded signal to stay at 0
-            )
+            ).to(device)
 
         # Curriculum learning on each severity metrics independently
-        self.area_loss = self.ordinal_loss(self.pred_class, self.targ1) + .2*huber(self.pred_class, self.targ1)
+        self.area_loss = bce(self.pred_class, self.targ1)# + .2*huber(self.pred_class, self.targ1)
         if self.level == 0:
-            self.gather_loss = self.ordinal_loss(output, target) + .2*huber(output, target)
+            self.gather_loss = self.ordinal_loss(self.pred, target)# + .2*huber(output, target)
         if self.level == 0 or self.level >= 2:
-            self.duration_loss = self.ordinal_loss(self.pred_class, self.targ2) + .2*huber(self.pred_class, self.targ2)
+            self.duration_loss = bce(self.pred_class, self.targ2)# + .2*huber(self.pred_class, self.targ2)
         if self.level == 0 or self.level == 3:
-            self.arousal_loss = bce(self.pred_class_discr, self.targ3)
+            self.arousal_loss = bce(self.pred_class, self.targ3)
                 
         # Use of global loss
         if self.level == 0:
@@ -240,6 +237,7 @@ class stagerNetAAE(nn.Module):
                 loss = loss + \
                         .01*self.area_loss + .01*self.duration_loss + .005*self.arousal_loss +\
                         .005*self.recons_loss
+                print(f'losses: {loss, self.area_loss, self.duration_loss, self.arousal_loss, self.recons_loss}')
         elif self.level == 1:
             loss = self.area_loss
             if self.global_loss:
@@ -257,7 +255,7 @@ class stagerNetAAE(nn.Module):
 
         # Final loss
         self.simple_loss = loss
-        self.ord_loss = self.ordinal_loss(output, target)
+        self.ord_loss = self.ordinal_loss(self.pred, target)
         loss = loss + .1*self.ord_loss
 
         return loss

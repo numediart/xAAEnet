@@ -237,7 +237,7 @@ class stagerNetAAE(nn.Module):
                 loss = loss + \
                         .01*self.area_loss + .01*self.duration_loss + .005*self.arousal_loss +\
                         .005*self.recons_loss
-                print(f'losses: {loss, self.area_loss, self.duration_loss, self.arousal_loss, self.recons_loss}')
+                # print(f'losses: {loss, self.area_loss, self.duration_loss, self.arousal_loss, self.recons_loss}')
         elif self.level == 1:
             loss = self.area_loss
             if self.global_loss:

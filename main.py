@@ -32,8 +32,8 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from model import stagerNetAAE, stagerNetCritic
-from utils import LossAttrMetric, FreezeEncoderCallback, ChangeTargetData, \
-                GetLatentSpace, TrainClassif, CheckNorm, norm_batch, UnfreezeFcCrit, \
+from utils import LossAttrMetric, \
+                GetLatentSpace, norm_batch, UnfreezeFcCrit, \
                 SwitchAttribute, distrib_regul_regression, hist_lab, plot_results
 
 # Load the config file
@@ -124,75 +124,119 @@ print(dls.one_batch())
 
 ### Train the AutoEncoder part ###
 acc_factor = config['acc_factor']
-autoencoder = stagerNetAAE(acc_factor=acc_factor)
-autoencoder = autoencoder.to(device)
-metrics = [rmse]
-learn = Learner(dls, autoencoder, loss_func = autoencoder.ae_loss_func, metrics=metrics, opt_func=ranger)
-learning_rate = learn.lr_find()
-learn.fit_flat_cos(n_epoch=config['n_epoch'], lr=learning_rate.valley,
-                    cbs=[
-                        GradientAccumulation(n_acc=dls.bs*acc_factor),
-                        TrackerCallback(),
-                        SaveModelCallback(fname=config['ae_filename']),
-                        EarlyStoppingCallback(min_delta=1e-4,patience=config['patience'])])
+latent_dim = config['latent_dim']
+model = stagerNetAAE(latent_dim=latent_dim,acc_factor=acc_factor)
+model = model.to(device)
+if config['train_ae']:
+    metrics = [rmse]
+    learn = Learner(dls, model, loss_func = model.ae_loss_func, metrics=metrics, opt_func=ranger)
+    learning_rate = learn.lr_find()
+    learn.fit_flat_cos(n_epoch=config['n_epoch'], lr=learning_rate.valley,
+                        cbs=[
+                            GradientAccumulation(n_acc=dls.bs*acc_factor),
+                            TrackerCallback(),
+                            SaveModelCallback(fname=config['ae_filename']),
+                            EarlyStoppingCallback(min_delta=1e-4,patience=config['patience'])])
 
 state_dict = torch.load(f'models/{config["ae_filename"]}.pth') # load the best weights
 
 
 ### Train the Classifier part ###
 classif_filename = config['classif_filename']
-classif = stagerNetAAE(acc_factor=acc_factor)
-classif.load_state_dict(state_dict, strict=False)
-classif = classif.to(device)
+model.load_state_dict(state_dict, strict=False)
 #define the metrics to show
 metrics = [LossAttrMetric("gather_loss"), LossAttrMetric("simple_loss"),
            LossAttrMetric("area_loss"), LossAttrMetric("duration_loss"),
            LossAttrMetric("arousal_loss"), LossAttrMetric("ord_loss")]
 #freeze the discriminator weights
-for name, param in classif.named_parameters():
+for name, param in model.named_parameters():
     if "fc_crit" in name:
         param.requires_grad_(False)
-#define the losses to montitor
-monitor_loss = ['area_loss','duration_loss','arousal_loss']
-# Start curriculum learning
-total_cycles = config['nb_of_metrics']
-for i in range(total_cycles):
-    curr_filename = str(classif_filename)+'_level'+str(i+1)
-    classif.level = i+1
-    met = metrics[1:i+3] + metrics[-1:]
-    learn = Learner(dls, classif, loss_func=classif.classif_loss_func,
-                   metrics=met, opt_func=ranger)
-    learning_rate = learn.lr_find()
-    print('learning rate: '+str(learning_rate.valley))
 
-    learn.fit_flat_cos(config['n_epoch'], lr=learning_rate.valley,
-                        cbs=[CheckNorm(),
-                            GradientAccumulation(n_acc=dls.bs*acc_factor),
-                            TrackerCallback(monitor=monitor_loss[i]),
-                            SaveModelCallback(fname=curr_filename,monitor=monitor_loss[i]),
-                            EarlyStoppingCallback(min_delta=1e-4,patience=config['patience'],monitor=monitor_loss[i]),
-                            SwitchAttribute(attribute_name='global_loss', switch_every=5)
-                            ])
-    learn.load(curr_filename)
-    classif.load_state_dict(learn.model.state_dict())
+if config['train_classif_discrete']:
+    #define the losses to montitor
+    monitor_loss = ['area_loss','duration_loss','arousal_loss']
+    #set the learning rates
+    learning_rates = [1e-3,5e-4,2e-4]
+    # Start curriculum learning
+    total_cycles = config['nb_of_metrics']
+    for i in range(total_cycles):
+        curr_filename = str(classif_filename)+'_level'+str(i+1)
+        model.level = i+1
+        met = metrics[1:i+3] + metrics[-1:]
+        learn = Learner(dls, model, loss_func=model.classif_loss_func,
+                       metrics=met, opt_func=ranger)
 
-classif.level = 0
-classif.dropout_rate = .1
-learn = Learner(dls_classif, classif, loss_func=classif.classif_loss_func,
-               metrics=metrics, opt_func=ranger)
-learning_rate = learn.lr_find()
-learn.fit_flat_cos(config['n_epoch'], lr=learning_rate.valley,
-                        cbs=[CheckNorm(),
-                            GradientAccumulation(n_acc=dls_classif.bs*acc_factor),
-                            TrackerCallback(monitor='gather_loss'),
-                            SaveModelCallback(fname=classif_filename, monitor='gather_loss'),
-                            EarlyStoppingCallback(min_delta=1e-4,patience=config['patience'],monitor='gather_loss'),
-                            SwitchAttribute(attribute_name='global_loss', switch_every=5)])
+        learn.fit_flat_cos(config['n_epoch'], lr=learning_rates[i],
+                            cbs=[CheckNorm(),
+                                GradientAccumulation(n_acc=dls.bs*acc_factor),
+                                TrackerCallback(monitor=monitor_loss[i]),
+                                SaveModelCallback(fname=curr_filename,monitor=monitor_loss[i]),
+                                EarlyStoppingCallback(min_delta=1e-4,patience=config['patience'],monitor=monitor_loss[i]),
+                                SwitchAttribute(attribute_name='global_loss', switch_every=5)
+                                ])
+        learn.load(curr_filename)
+        model.load_state_dict(learn.model.state_dict())
 
-np.save('results/'+str(classif_filename)+'_losses.npy', learn.recorder.losses)
-np.save('results/'+str(classif_filename)+'_values.npy', learn.recorder.values)
+state_dict = torch.load(f'models/{classif_filename}_level3.pth') # load the best weights
+model.load_state_dict(state_dict, strict=False)
+if config['train_regress']:
+    model.level = 0
+    model.dropout_rate = .1
+    learn = Learner(dls, model, loss_func=model.classif_loss_func,
+                   metrics=metrics, opt_func=ranger)
+    learn.fit_flat_cos(config['n_epoch'], lr=1e-3,
+                            cbs=[
+                                GradientAccumulation(n_acc=dls.bs*acc_factor),
+                                TrackerCallback(monitor='gather_loss'),
+                                SaveModelCallback(fname=classif_filename, monitor='gather_loss'),
+                                EarlyStoppingCallback(min_delta=1e-4,patience=config['patience'],monitor='gather_loss'),
+                                SwitchAttribute(attribute_name='global_loss', switch_every=5)])
+
+    np.save('results/'+str(classif_filename)+'_losses.npy', learn.recorder.losses)
+    np.save('results/'+str(classif_filename)+'_values.npy', learn.recorder.values)
 
 state_dict = torch.load(f'models/{config["classif_filename"]}.pth') # load the best weights
 
 
 ### Train the Adversarial part ###
+model.load_state_dict(state_dict, strict=False)
+adv_filename = config['aae_filename']
+if config['train_aae']:
+    metrics = [LossAttrMetric("classif_loss"), LossAttrMetric("recons_loss"),
+               LossAttrMetric("adv_loss")]
+    learn = Learner(dls, model, loss_func=model.aae_loss_func,
+                   metrics=metrics, opt_func=ranger)
+
+    learn.fit_flat_cos(config['n_epoch'], lr=1e-3,
+                            cbs=[
+                                GradientAccumulation(n_acc=dls.bs*acc_factor),
+                                TrackerCallback(monitor='classif_loss'),
+                                SaveModelCallback(fname=adv_filename, monitor='classif_loss'),
+                                EarlyStoppingCallback(min_delta=1e-4,patience=config['patience'],monitor='classif_loss'),
+                                UnfreezeFcCrit(switch_every=2),
+                                SwitchAttribute(attribute_name='global_loss', switch_every=5)])
+
+state_dict = torch.load(f'models/{adv_filename}.pth') # load the best weights
+
+
+### Extract the latent space ###
+result_filename = config['result_filename']
+model.load_state_dict(state_dict, strict=False)
+learn = Learner(dls,model,loss_func=model.aae_loss_func)
+if config['load_latent_space']:
+    new_zi = torch.load(f'data/z_{result_filename}.pt')
+    print(f'latent space loaded with shape {new_zi.shape}')
+else:
+    learn.zi_valid = torch.tensor([]).to(dev)
+    learn.get_preds(ds_idx=0,cbs=[GetLatentSpace(cycle_len=1)])
+    new_zi = learn.zi_valid
+    learn.zi_valid = torch.tensor([]).to(dev)
+    learn.get_preds(ds_idx=1,cbs=[GetLatentSpace(cycle_len=1)])
+    new_zi = torch.vstack((new_zi,learn.zi_valid))
+
+print("new_zi shape: "+str(new_zi.shape))
+torch.save(new_zi,f'data/z_{result_filename}.pt')
+
+### Display the latent space ###
+plot_results(new_zi.to(dev),lab_gather,learn,result_filename)

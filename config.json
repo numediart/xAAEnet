@@ -3,8 +3,13 @@
 
 {
 	"device" 				: "cuda:3",
-	"load_dls" 				: true,
 	"trainset_part" 		: 0.75,
+	"load_dls" 				: true,
+	"load_latent_space" 	: true,
+	"train_ae" 				: false,
+	"train_classif_discrete": false,
+	"train_regress" 		: false,
+	"train_aae" 			: false,
 
 	"data_path" 			: "/home/JennebauffeC/pytorchVAE/fastAI/data/X_large.zarr",
 	"dls_path" 				: "./data/dls.pkl",
@@ -12,47 +17,15 @@
 
 	"ae_filename" 			: "xaaenet_ae",
 	"classif_filename" 		: "xaaenet_classif",
+	"aae_filename" 			: "xaaenet_aae",
+	"result_filename" 		: "result",
 
 	"nb_of_labels"			: 6,
 	"nb_of_metrics"			: 3,
 	"bs" 					: 16,
-	"val_bs"				: 32,	
+	"val_bs"				: 32,
+	"latent_dim"  			: 128,	
 	"acc_factor" 			: 16,
 	"n_epoch" 				: 200,
-	"patience" 				: 25,
-
-	"model_names"		 	: "model_cat,model_psycho,model_image,model_psycho_image",
-	"model_names_naive" 	: "model_psycho,model_image,model_psycho_image",
-	"save_choice" 			: true,
-	"SOURCE_ANALYSIS" 		: false,
-	"task_name" 			: "semanticPriming",
-	"datatype"				: "bdf",
-	"comment_datatype"		: "bdf, edf or mat",
-
-	"PATH_TO_FIELDTRIP" 	: "D:/FieldTrip",
-	"PATH_TO_LIMO" 			: "D:/_LIMO/limo_tools",	
-	"PATH_TO_FT2LIMO" 		: "D:/_LIMO/LIMO-for-FieldTrip",
-	"PATH_TO_SOURCE" 		: "D:/__EEG-data/BIDS_source",
-
-	"PATH_TO_COV_ANALYSIS" 	: "C:/Users/luca-/OneDrive - UMONS/_PhD/__GitHub/Covariates_Analysis",
-	"PATH_TO_IMAGES" 		: "D:/_ARC-images/ARC_tache_Final/300x300",
-	"PATH_TO_SIMILARITY" 	: "utils/visual_similarity.csv",
-	"PATH_TO_ITEMS" 		: "utils/items_description.csv",
-	"cov_description" 		: "utils/continuous_variables.csv",
-	"comment_cov_descript." : "give the path to the csv file containing the values of the studied confounders",	
-
-	"trial_function" 		: "SenSem_trialfun_trial",
-	"comment_trial_function": "replace with the desired trial function (cf. FieldTrip doc)",
-	"trialdef_eventtype"	: "STATUS",
-	"trialdef_eventvalue" 	: [10, 11, 12],
-	"trialdef_prestim"		: 0.5,
-	"trialdef_poststim"		: 1,
-	"trial_start" 			: -200,
-	"trial_end" 			: 500,
-	"comment_trial" 		: "in ms",
-
-	"atlas"					: "template/atlas.mat",
-	"headmodel"				: "template/vol.mat",
-	"elec"					: "template/elec.mat",
-	"channels"				: "[1:64]"
+	"patience" 				: 25
 }

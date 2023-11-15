@@ -291,7 +291,7 @@ Run the following command while being in the *xAAEnet* directory
 python main.py
 ```
 The results will be stored in the [/results](https://github.com/numediart/xAAEnet/results/) folder. The most important figure being *z_result_tsne*. It represents the latent space in 2D with the most discriminant direction represented by a red arrow, like in this example:
-[!TSNE representation](https://github.com/numediart/xAAEnet/results/z_result_tsne.png)
+![TSNE representation](https://github.com/numediart/xAAEnet/blob/main/results/z_result_tsne.png)
 
 ## Data
 Each trial in the dataset is composed of 23 channels and 3001 timestamps, as shown on Figure 1

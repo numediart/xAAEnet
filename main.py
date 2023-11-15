@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 This library cannot be used for commercial use without the agreement of the
 author (Luca La Fisca).
 '''
+from collections import Counter
 
 import zarr
 from fastai.tabular.all import *

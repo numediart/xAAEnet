@@ -4,6 +4,7 @@
 {
 	"device" 				: "cuda:3",
 	"trainset_part" 		: 0.75,
+
 	"load_dls" 				: true,
 	"load_latent_space" 	: true,
 	"train_ae" 				: false,

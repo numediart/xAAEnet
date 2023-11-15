@@ -19,35 +19,22 @@ device = torch.device(config['device'])
 dev = device
 
 class stagerNetAAE(nn.Module):
-    def __init__(self, typ: int=0, channels: int=23, timestamps: int=3001, nclass: int=1,
-                    use_adv: bool=False, use_norm: bool=False, use_embed: bool=False, 
-                    acc_factor: int=8, dropout_rate: float=0.5,
-                    latent_dim: int=128, gan_depth: int=3, k_pool_size: int=13,
-                    info_weight: float=.2, vae_weight: float=.1, classif_weight: float = .95,
-                    epsilon:float=0.1, max_iter:int=100, level: int=0):
+    def __init__(self, channels: int=23, timestamps: int=3001,
+                    acc_factor: int=8, dropout_rate: float=0.5, level: int=0,
+                    latent_dim: int=128, gan_depth: int=3, k_pool_size: int=13
+                ):
         super(stagerNetAAE, self).__init__()
         
-        self.typ = typ
-        self.nclass = nclass
         self.channels = channels #number of input channels (spatial)
         self.timestamps = timestamps #number of input timestamps (temporal)
-        self.use_adv = use_adv
-        self.use_norm = use_norm
-        self.use_embed = use_embed
         self.acc_factor = acc_factor
         self.latent_dim = latent_dim #embed_dim
         self.k_pool_size = k_pool_size #embed_dim
         self.dropout_rate = dropout_rate
-        self.info_weight = info_weight
-        self.vae_weight = vae_weight
-        self.classif_weight = classif_weight
         self.gan_depth = gan_depth
-        self.epsilon, self.max_iter = epsilon, max_iter
         self.gen_train = True
-        self.count_acc = 0
         self.level = level
         self.global_loss = False
-        self.train_crit = False
         
         #=============Encoder=============#
         self.conv1 = nn.Conv2d(1, self.channels, (1, self.channels), stride=(1, 1))
@@ -69,7 +56,6 @@ class stagerNetAAE(nn.Module):
         self.deconv3 = nn.ConvTranspose2d(16, 16, (self.timestamps//60,1), stride=(1,1))
 
         #===============GAN===============#
-#         if self.typ == 3 :
         fcs = ['fc_crit0','fc_crit1','fc_crit2','fc_crit3','fc_crit4']
         bns = ['bn_crit0','bn_crit1','bn_crit2','bn_crit3','bn_crit4']
         for i in range(self.gan_depth-1):
@@ -160,9 +146,7 @@ class stagerNetAAE(nn.Module):
         self.pred = self.fc_clf(zi).to(dev)
 
         self.pred_class = F.softmax(self.fc_clf_discr1(zi)).to(dev)
-        # if self.level == 0 or self.level >= 2:
         self.pred_class2 = F.softmax(self.fc_clf_discr2(zi)).to(dev).argmax(dim=1)
-        # if self.level == 0 or self.level == 3:
         self.pred_class3 = F.softmax(self.fc_clf_discr3(zi)).to(dev).argmax(dim=1)
         
         preds = torch.cat([self.pred] * config['nb_of_labels'], dim=1) # force the same shape as the labels
@@ -202,10 +186,6 @@ class stagerNetAAE(nn.Module):
         return loss
     
     def classif_loss_func(self, output, target):
-        # print(f'The target type is {type(target)} with length: {len(target)}')
-        # print('with shapes:')
-        # for i in range(len(target[0])):
-        #     print(f'target[{i}]: {target[:,i].shape}')
         self.targ1 = target[:,1].to(dev).type(torch.long)
         self.targ2 = target[:,2].to(dev).type(torch.long)
         self.targ3 = target[:,3].to(dev).type(torch.long)
@@ -283,35 +263,3 @@ class stagerNetAAE(nn.Module):
             loss = 0.6 * self.real_loss + 0.4 * self.fake_loss
 
         return loss
-
-
-class stagerNetCritic(nn.Module):
-    def __init__(self, latent_dim: int=128, gan_depth: int=3):
-        super(stagerNetCritic, self).__init__()
-        
-        self.latent_dim = latent_dim #embed_dim
-        self.gan_depth = gan_depth #depth of the dicriminator
-        
-        fcs = ['fc_crit0','fc_crit1','fc_crit2','fc_crit3','fc_crit4']
-        bns = ['bn_crit0','bn_crit1','bn_crit2','bn_crit3','bn_crit4']
-        for i in range(self.gan_depth-1):
-            self.add_module(fcs[i], nn.Linear(self.latent_dim//2**(i), self.latent_dim//2**(i+1)))
-            self.add_module(bns[i], nn.BatchNorm1d(num_features=self.latent_dim//2**(i+1)))
-
-        self.add_module(fcs[self.gan_depth-1], nn.Linear(self.latent_dim//2**(self.gan_depth-1), 1))
-        
-    def discrim(self, zi: Tensor) -> Tensor:
-        x = zi.view(-1,self.latent_dim)
-        for i in range(self.gan_depth-1):
-            x = getattr(self,f'fc_crit{i}')(x)
-            x = F.leaky_relu(getattr(self,f'bn_crit{i}')(x),negative_slope=0.2)
-        x = getattr(self,f'fc_crit{self.gan_depth-1}')(x)
-        x = F.sigmoid(x)
-        return x
-
-    def forward(self, input: Tensor, **kwargs) -> Tensor:
-        if next(self.fc_crit0.parameters()).is_cuda:
-            self.gan_class = self.discrim(input)
-        else:
-            self.gan_class = self.discrim(input.type(torch.FloatTensor).detach().cpu())
-        return self.gan_class

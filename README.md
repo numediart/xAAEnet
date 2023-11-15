@@ -40,18 +40,18 @@ Define device and data splitting
 ```
 Define what to load and what to train
 ```
-"load_dls" 		: false,
-"load_latent_space" 	: false,
-"train_ae" 		: true,
-"train_classif_discrete"      : true,
-"train_regress" 		: true,
-"train_aae" 		: true,
+"load_dls"                     : false,
+"load_latent_space"            : false,
+"train_ae"                     : true,
+"train_classif_discrete"       : true,
+"train_regress"                : true,
+"train_aae"                    : true,
 ```
 Define the required paths
 ```
-"data_path" 	          : "/home/JennebauffeC/pytorchVAE/fastAI/data/X_large.zarr",
-"dls_path" 		: "./data/dls.pkl",
-"labels_path" 		: "./data",
+"data_path"                     : "/home/JennebauffeC/pytorchVAE/fastAI/data/X_large.zarr",
+"dls_path"                      : "./data/dls.pkl",
+"labels_path"                   : "./data",
 ```
 Define the model filenames
 ```

@@ -35,41 +35,41 @@ Modify the [config.json file](https://github.com/numediart/xAAEnet/blob/main/con
 
 Define device and data splitting
 ```
-"device" 				: "cuda:3",
+"device" 			: "cuda:3",
 "trainset_part" 		: 0.75,
 ```
 Define what to load and what to train
 ```
-"load_dls" 				: false,
+"load_dls" 		: false,
 "load_latent_space" 	: false,
-"train_ae" 				: true,
-"train_classif_discrete": true,
+"train_ae" 		: true,
+"train_classif_discrete"      : true,
 "train_regress" 		: true,
-"train_aae" 			: true,
+"train_aae" 		: true,
 ```
 Define the required paths
 ```
-"data_path" 			: "/home/JennebauffeC/pytorchVAE/fastAI/data/X_large.zarr",
-"dls_path" 				: "./data/dls.pkl",
-"labels_path" 			: "./data",
+"data_path" 	          : "/home/JennebauffeC/pytorchVAE/fastAI/data/X_large.zarr",
+"dls_path" 		: "./data/dls.pkl",
+"labels_path" 		: "./data",
 ```
 Define the model filenames
 ```
-"ae_filename" 			: "xaaenet_ae",
+"ae_filename" 		: "xaaenet_ae",
 "classif_filename" 		: "xaaenet_classif",
-"aae_filename" 			: "xaaenet_aae",
+"aae_filename" 		: "xaaenet_aae",
 "result_filename" 		: "result",
 ```
 Define the required parameters
 ```
-"nb_of_labels"			: 6, # number of labels on which you will perform a classification/regression (here: lab_gather, lab_area, lab_duration, lab_arousal, lab3, lab4)
-"nb_of_metrics"			: 3, # number of metrics of reference (here: desaturation area, apnea duration, and arousal events)
-"bs" 					: 16, # training batch size
-"val_bs"				: 32, # validation batch size
-"latent_dim"  			: 128,	# the dimension of the latent vector on which you focus your analysis
-"acc_factor" 			: 16, # number of batchs that will be gathered together before updating the weights of your neural network
-"n_epoch" 				: 200, # number of epochs of each training phase
-"patience" 				: 25 # number of epochs without improvement for triggering early stopping
+"nb_of_labels"		: 6, # number of labels on which you will perform a classification/regression (here: lab_gather, lab_area, lab_duration, lab_arousal, lab3, lab4)
+"nb_of_metrics"		: 3, # number of metrics of reference (here: desaturation area, apnea duration, and arousal events)
+"bs" 			: 16, # training batch size
+"val_bs"			: 32, # validation batch size
+"latent_dim"  		: 128,	# the dimension of the latent vector on which you focus your analysis
+"acc_factor" 		: 16, # number of batchs that will be gathered together before updating the weights of your neural network
+"n_epoch" 		: 200, # number of epochs of each training phase
+"patience" 		: 25 # number of epochs without improvement for triggering early stopping
 ```
 
 ### 2. Define your labels

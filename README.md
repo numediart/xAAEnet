@@ -12,18 +12,19 @@ The library versions used here are:
 - cudatoolkit=11.3
 - fastai=2.7.9
 - fastcore=1.5.24
+- ipykernel=6.25.0
 - matplotlib=3.5.2
 - numpy=1.22.3
 - scikit-learn=1.1.0
 - scipy=1.8.0
 - seaborn=0.11.2
 - torchmetrics=0.7.3
-- tsai=0.3.1
+- tsai=0.3.1 # note: only with pip install
 - zarr=2.12.0
 
-All the required packages could be directly installed within your conda environment by using the file requirements.txt through:
+All the required packages could be directly installed within your conda environment by using the file environment.yml through:
 ```
-conda create -n <environment-name> --file requirements.txt
+conda env create -n <your environment name> -f environment.yml
 ```
 
 /!\ Your input data should be stored as [.zarr file](https://zarr.readthedocs.io/en/stable/tutorial.html) /!\

@@ -12,25 +12,26 @@ The library versions used here are:
 - cudatoolkit=11.3
 - fastai=2.7.9
 - fastcore=1.5.24
+- ipykernel=6.25.0
 - matplotlib=3.5.2
 - numpy=1.22.3
 - scikit-learn=1.1.0
 - scipy=1.8.0
 - seaborn=0.11.2
 - torchmetrics=0.7.3
-- tsai=0.3.1
+- tsai=0.3.1 # note: only with pip install
 - zarr=2.12.0
 
-All the required packages could be directly installed within your conda environment by using the file requirements.txt through:
+All the required packages could be directly installed within your conda environment by using the file environment.yml through:
 ```
-conda create -n <environment-name> --file requirements.txt
+conda env create -n <your environment name> -f environment.yml
 ```
 
 /!\ Your input data should be stored as [.zarr file](https://zarr.readthedocs.io/en/stable/tutorial.html) /!\
 
 ## Tutorial
 ### 1. Set the config file
-Modify the [config.json file](https://github.com/numediart/xAAEnet/config.json).
+Modify the [config.json file](https://github.com/numediart/xAAEnet/blob/main/config.json).
 
 Define device and data splitting
 ```
@@ -72,7 +73,7 @@ Define the required parameters
 ```
 
 ### 2. Define your labels
-Here, all the metrics values are stored as npy files in /data folder
+Here, all the metrics values are stored as npy files in [/data](https://github.com/numediart/xAAEnet/tree/main/data) folder
 ```
 lab_area = torch.Tensor(np.load(f'{config["labels_path"]}/area_db.npy'))[:,None]
 lab_arousal = torch.Tensor(np.load(f'{config["labels_path"]}/arousal_db.npy'))[:,None]
@@ -290,8 +291,8 @@ Run the following command while being in the *xAAEnet* directory
 ```
 python main.py
 ```
-The results will be stored in the [/results](https://github.com/numediart/xAAEnet/results/) folder. The most important figure being *z_result_tsne*. It represents the latent space in 2D with the most discriminant direction represented by a red arrow, like in this example:
-[!TSNE representation](https://github.com/numediart/xAAEnet/results/z_result_tsne.png)
+The results will be stored in the [/results](https://github.com/numediart/xAAEnet/tree/main/results) folder. The most important figure being *z_result_tsne*. It represents the latent space in 2D with the most discriminant direction represented by a red arrow, like in this example:
+![TSNE representation](https://github.com/numediart/xAAEnet/blob/main/results/z_result_tsne.png)
 
 ## Data
 Each trial in the dataset is composed of 23 channels and 3001 timestamps, as shown on Figure 1

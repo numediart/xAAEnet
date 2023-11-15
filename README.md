@@ -55,10 +55,10 @@ Define the required paths
 ```
 Define the model filenames
 ```
-"ae_filename"                    : "xaaenet_ae",
-"classif_filename"                    : "xaaenet_classif",
+"ae_filename"                     : "xaaenet_ae",
+"classif_filename"                : "xaaenet_classif",
 "aae_filename"                    : "xaaenet_aae",
-"result_filename"                    : "result",
+"result_filename"                 : "result",
 ```
 Define the required parameters
 ```

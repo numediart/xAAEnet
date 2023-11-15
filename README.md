@@ -30,7 +30,7 @@ conda create -n <environment-name> --file requirements.txt
 
 ## Tutorial
 ### 1. Set the config file
-Modify the [config.json file](https://github.com/numediart/xAAEnet/config.json).
+Modify the [config.json file](https://github.com/numediart/xAAEnet/blob/main/config.json).
 
 Define device and data splitting
 ```
@@ -72,7 +72,7 @@ Define the required parameters
 ```
 
 ### 2. Define your labels
-Here, all the metrics values are stored as npy files in /data folder
+Here, all the metrics values are stored as npy files in [/data](https://github.com/numediart/xAAEnet/tree/main/data) folder
 ```
 lab_area = torch.Tensor(np.load(f'{config["labels_path"]}/area_db.npy'))[:,None]
 lab_arousal = torch.Tensor(np.load(f'{config["labels_path"]}/arousal_db.npy'))[:,None]
@@ -290,7 +290,7 @@ Run the following command while being in the *xAAEnet* directory
 ```
 python main.py
 ```
-The results will be stored in the [/results](https://github.com/numediart/xAAEnet/results/) folder. The most important figure being *z_result_tsne*. It represents the latent space in 2D with the most discriminant direction represented by a red arrow, like in this example:
+The results will be stored in the [/results](https://github.com/numediart/xAAEnet/tree/main/results) folder. The most important figure being *z_result_tsne*. It represents the latent space in 2D with the most discriminant direction represented by a red arrow, like in this example:
 ![TSNE representation](https://github.com/numediart/xAAEnet/blob/main/results/z_result_tsne.png)
 
 ## Data

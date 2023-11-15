@@ -6,6 +6,26 @@ This repository provides the open-source codes and supplementary materials relat
 - [La Fisca *et al*, "Enhancing OSA Assessment with Explainable AI", EMBC 2023.](https://orbi.umons.ac.be/handle/20.500.12907/46450)
 
 ## Requirements
+The library versions used here are:
+- python=3.8
+- pytorch=1.11.0
+- cudatoolkit=11.3
+- fastai=2.7.9
+- fastcore=1.5.24
+- matplotlib=3.5.2
+- numpy=1.22.3
+- scikit-learn=1.1.0
+- scipy=1.8.0
+- seaborn=0.11.2
+- torchmetrics=0.7.3
+- tsai=0.3.1
+- zarr=2.12.0
+
+All the required packages could be directly installed within your conda environment by using the file requirements.txt through:
+```
+conda create -n <environment-name> --file requirements.txt
+```
+
 /!\ Your input data should be stored as [.zarr file](https://zarr.readthedocs.io/en/stable/tutorial.html) /!\
 
 ## Tutorial

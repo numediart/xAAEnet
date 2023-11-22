@@ -33,8 +33,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from model import stagerNetAAE, stagerNetCritic
-from utils import LossAttrMetric, \
-                GetLatentSpace, norm_batch, UnfreezeFcCrit, \
+from utils import LossAttrMetric, GetLatentSpace, norm_batch, UnfreezeFcCrit, \
                 SwitchAttribute, distrib_regul_regression, hist_lab, plot_results
 
 # Load the config file
@@ -43,9 +42,8 @@ with open(config_file, 'r') as file:
     config = json.load(file)
 
 # Set the device on which you want to train the model
-dev = torch.device(config['device'])
-device = dev
-torch.cuda.set_device(dev)
+device = torch.device(config['device'])
+torch.cuda.set_device(device)
 
 lab_area = torch.Tensor(np.load(f'{config["labels_path"]}/area_db.npy'))[:,None]
 lab_arousal = torch.Tensor(np.load(f'{config["labels_path"]}/arousal_db.npy'))[:,None]
@@ -107,7 +105,7 @@ else:
                        getters=getters,
                        splitter=splitter,
                        batch_tfms=norm_batch())
-    src = itemify(t,label_stack)
+    src = itemify(t.to('cpu'),label_stack.to('cpu'))
     dls = dblock.dataloaders(src, bs=config['bs'], val_bs=config['val_bs'], drop_last=True)
 
     torch.save(dls, config['dls_path'])
@@ -229,10 +227,10 @@ if config['load_latent_space']:
     new_zi = torch.load(f'data/z_{result_filename}.pt')
     print(f'latent space loaded with shape {new_zi.shape}')
 else:
-    learn.zi_valid = torch.tensor([]).to(dev)
+    learn.zi_valid = torch.tensor([]).to(device)
     learn.get_preds(ds_idx=0,cbs=[GetLatentSpace(cycle_len=1)])
     new_zi = learn.zi_valid
-    learn.zi_valid = torch.tensor([]).to(dev)
+    learn.zi_valid = torch.tensor([]).to(device)
     learn.get_preds(ds_idx=1,cbs=[GetLatentSpace(cycle_len=1)])
     new_zi = torch.vstack((new_zi,learn.zi_valid))
 
@@ -240,4 +238,4 @@ print("new_zi shape: "+str(new_zi.shape))
 torch.save(new_zi,f'data/z_{result_filename}.pt')
 
 ### Display the latent space ###
-plot_results(new_zi.to(dev),lab_gather,learn,result_filename)
+plot_results(new_zi.to(device),lab_gather,learn,result_filename)

@@ -167,7 +167,7 @@ if config['train_classif_discrete']:
                        metrics=met, opt_func=ranger)
 
         learn.fit_flat_cos(config['n_epoch'], lr=learning_rates[i],
-                            cbs=[CheckNorm(),
+                            cbs=[
                                 GradientAccumulation(n_acc=dls.bs*acc_factor),
                                 TrackerCallback(monitor=monitor_loss[i]),
                                 SaveModelCallback(fname=curr_filename,monitor=monitor_loss[i]),

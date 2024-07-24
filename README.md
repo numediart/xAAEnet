@@ -296,7 +296,7 @@ The results will be stored in the [/results](https://github.com/numediart/xAAEne
 
 ## Model Architecture
 **xAAEnet**
-![alt text](https://github.com/numediart/xAAEnet/blob/main/data/xAAEnet.png)
+![alt text](https://github.com/numediart/xAAEnet/blob/main/xAAEnet.png)
 
 ## Data
 Each trial in the dataset is composed of 23 channels and 3001 timestamps, as shown on Figure 1

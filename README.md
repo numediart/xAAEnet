@@ -294,6 +294,10 @@ python main.py
 The results will be stored in the [/results](https://github.com/numediart/xAAEnet/tree/main/results) folder. The most important figure being *z_result_tsne*. It represents the latent space in 2D with the most discriminant direction represented by a red arrow, like in this example:
 ![TSNE representation](https://github.com/numediart/xAAEnet/blob/main/results/z_result_tsne.png)
 
+## Model Architecture
+**xAAEnet**
+![alt text](https://github.com/numediart/xAAEnet/blob/main/data/xAAEnet.png)
+
 ## Data
 Each trial in the dataset is composed of 23 channels and 3001 timestamps, as shown on Figure 1
 ![alt text](https://github.com/numediart/xAAEnet/blob/main/data/data.png)
